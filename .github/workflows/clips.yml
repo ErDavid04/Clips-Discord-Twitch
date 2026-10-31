@@ -1,0 +1,34 @@
+name: Clips de Twitch a Discord
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: twitch-clips
+  cancel-in-progress: false
+
+jobs:
+  clips:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Buscar clips nuevos y publicarlos
+        run: python3 clips.py
+        env:
+          TWITCH_CLIENT_ID: ${{ secrets.TWITCH_CLIENT_ID }}
+          TWITCH_CLIENT_SECRET: ${{ secrets.TWITCH_CLIENT_SECRET }}
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          TWITCH_LOGIN: ${{ vars.TWITCH_LOGIN }}
+
+      - name: Guardar clips ya publicados
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add state.json
+          git diff --cached --quiet || (git commit -m "Actualizar clips publicados" && git push)
